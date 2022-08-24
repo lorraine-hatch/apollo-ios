@@ -120,7 +120,7 @@ jobs:
     steps:
       - common_test_setup
       - run:
-          command: swift build
+          command: swift build && swift package plugin --list && swift package plugin generate
 
   IntegrationTests_macOS_current:
     macos:
