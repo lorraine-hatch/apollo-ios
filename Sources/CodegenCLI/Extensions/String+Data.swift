@@ -1,9 +1,13 @@
 import Foundation
+import ArgumentParser
 
 extension String {
   func asData() throws -> Data {
     guard let data = data(using: .utf8) else {
-      throw Error(errorDescription: "Badly encoded string, should be UTF-8!")
+      let error = Error.conversionError
+      error.print()
+
+      throw ExitCode(error)
     }
 
     return data

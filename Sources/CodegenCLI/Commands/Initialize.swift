@@ -69,27 +69,40 @@ public struct Initialize: ParsableCommand {
     output: OutputClosure? = nil
   ) throws {
     if !overwrite && fileManager.doesFileExist(atPath: path) {
-      throw Error(
-        errorDescription: """
-          File already exists at \(path). Hint: use --overwrite to overwrite any existing \
-          file at the path.
-          """
-      )
+      let error = Error.fileAlreadyExists(path)
+      error.print()
+
+      throw ExitCode(error)
     }
 
-    try fileManager.createFile(
-      atPath: path,
-      data: data
-    )
+    do {
+      try fileManager.createFile(
+        atPath: path,
+        data: data
+      )
+    }
+    catch ApolloCodegenLib.FileManagerPathError.cannotCreateFile(let path) {
+      let error = Error.cannotCreateFile(path)
+      error.print()
+
+      throw ExitCode(error)
+    }
+    catch {
+      let exitError = Error.unknown(error.localizedDescription)
+      exitError.print()
+
+      throw ExitCode(exitError)
+    }
 
     print(message: "New configuration output to \(path).", output: output)
   }
 
   private func print(data: Data, output: OutputClosure? = nil) throws {
     guard let json = String(data: data, encoding: .utf8) else {
-      throw Error(
-        errorDescription: "Could not print the configuration, the JSON was not valid UTF-8."
-      )
+      let error = Error.conversionError
+      error.print()
+
+      throw ExitCode(error)
     }
 
     print(message: json, output: output)

@@ -42,18 +42,31 @@ public struct FetchSchema: ParsableCommand {
     let codegenConfiguration = try JSONDecoder().decode(ApolloCodegenConfiguration.self, from: data)
 
     guard let schemaDownloadConfiguration = codegenConfiguration.schemaDownloadConfiguration else {
-      throw Error(errorDescription: """
-        Missing schema download configuration. Hint: check the `schemaDownloadConfiguration` \
-        property of your configuration.
-        """
-      )
+      let error = Error.missingSchemaDownloadConfiguration
+      error.print()
+
+      throw ExitCode(error)
     }
 
     CodegenLogger.level = .warning
 
-    try schemaDownloadProvider.fetch(
-      configuration: schemaDownloadConfiguration,
-      withRootURL: rootOutputURL(for: inputs)
-    )
+    do {
+      try schemaDownloadProvider.fetch(
+        configuration: schemaDownloadConfiguration,
+        withRootURL: rootOutputURL(for: inputs)
+      )
+    }
+    catch ApolloCodegenLib.FileManagerPathError.cannotCreateFile(let path) {
+      let error = Error.cannotCreateFile(path)
+      error.print()
+
+      throw ExitCode(error)
+    }
+    catch {
+      let exitError = Error.unknown(error.localizedDescription)
+      exitError.print()
+
+      throw ExitCode(exitError)
+    }
   }
 }

@@ -62,11 +62,10 @@ public struct Generate: ParsableCommand {
       guard
         let schemaDownloadConfiguration = configuration.schemaDownloadConfiguration
       else {
-        throw Error(errorDescription: """
-          Missing schema download configuration. Hint: check the `schemaDownloadConfiguration` \
-          property of your configuration.
-          """
-        )
+        let error = Error.missingSchemaDownloadConfiguration
+        error.print()
+
+        throw ExitCode(error)
       }
 
       try fetchSchema(
@@ -75,13 +74,44 @@ public struct Generate: ParsableCommand {
       )
     }
 
-    try codegenProvider.build(with: configuration, withRootURL: rootOutputURL(for: inputs))
+    do {
+      try codegenProvider.build(with: configuration, withRootURL: rootOutputURL(for: inputs))
+    }
+    catch ApolloCodegenLib.FileManagerPathError.cannotCreateFile(let path) {
+      let error = Error.cannotCreateFile(path)
+      error.print()
+
+      throw ExitCode(error)
+    }
+    catch {
+      let exitError = Error.unknown(error.localizedDescription)
+      exitError.print()
+
+      throw ExitCode(exitError)
+    }
   }
 
   private func fetchSchema(
     configuration: ApolloSchemaDownloadConfiguration,
     schemaDownloadProvider: SchemaDownloadProvider.Type
   ) throws {
-    try schemaDownloadProvider.fetch(configuration: configuration, withRootURL: rootOutputURL(for: inputs))
+    do {
+      try schemaDownloadProvider.fetch(
+        configuration: configuration,
+        withRootURL: rootOutputURL(for: inputs)
+      )
+    }
+    catch ApolloCodegenLib.FileManagerPathError.cannotCreateFile(let path) {
+      let error = Error.cannotCreateFile(path)
+      error.print()
+
+      throw ExitCode(error)
+    }
+    catch {
+      let exitError = Error.unknown(error.localizedDescription)
+      exitError.print()
+
+      throw ExitCode(exitError)
+    }
   }
 }
